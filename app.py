@@ -50,7 +50,7 @@ def login():
         return jsonify({"error": "Email and password are required"}), 400
     user = User.query.filter_by(email=email).first()
     if not user:
-        return jsonify({"error": "User with email provided doesn't exists"}), 400
+        return jsonify({"error": "User with email provided doesn't exist"}), 400
     if bcrypt.check_password_hash(user.hashed_password, password):
         access_token = create_access_token(identity=user.email)
         return jsonify({
