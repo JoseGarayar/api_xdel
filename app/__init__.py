@@ -39,6 +39,7 @@ def create_app():
     app.config['ENV']='development'
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['ERROR_404_HELP'] = False
     
     db.init_app(app)
     bcrypt.init_app(app)
