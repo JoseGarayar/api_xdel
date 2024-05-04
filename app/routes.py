@@ -7,11 +7,8 @@ from flask_jwt_extended import (
     get_jwt_identity
 )
 # App
-from app.models import db, User
-from app.schemas import (
-    login_schema, 
-    user_schema
-)
+from app.models import *
+from app.schemas import *
 from app.functions import (
     check_valid_password,
     hash_password
@@ -24,6 +21,18 @@ def register_routes(api):
     ns_test = api.namespace('', description='Endpoints for testing')
     ns_login = api.namespace('login', description='Endpoints for login')
     ns_users = api.namespace('users', description='User operations')
+
+    ns_persons = api.namespace('persons', description='Person operations')
+    ns_invoices = api.namespace('invoices', description='Invoice operations')
+    ns_invoice_details = api.namespace('invoice_details', description='Invoice detail operations')
+    ns_product_services = api.namespace('product_services', description='Product service operations')
+    ns_couriers = api.namespace('couriers', description='Courier operations')
+    ns_roles = api.namespace('roles', description='Role operations')
+    ns_permissions = api.namespace('permissions', description='Permission operations')
+    ns_role_permissions = api.namespace('role_permissions', description='Role permission operations')
+    ns_user_roles = api.namespace('user_roles', description='User role operations')
+    ns_shipments = api.namespace('shipments', description='Shipment operations')
+    ns_shipment_states = api.namespace('shipment_states', description='Shipment state operations')
 
     # Routes
     @ns_test.route('/hello')
@@ -129,3 +138,153 @@ def register_routes(api):
                 db.session.commit()
                 return user_to_update
             ns_users.abort(404, "User not found")
+
+    # Routes for Person
+    @ns_persons.route('/')
+    class PersonList(Resource):
+        @ns_persons.doc('list_persons')
+        @ns_persons.marshal_list_with(output_person_schema)
+        def get(self):
+            """List all persons"""
+            return Person.query.all()
+    
+        @ns_persons.doc('create_person')
+        @ns_persons.expect(input_person_schema)
+        @ns_persons.marshal_with(output_person_schema)
+        def post(self):
+            """Create a new person"""
+            data = request.json
+            new_person = Person(
+                name=data['name'], 
+                address=data['address'],
+                contact_level=data['contact_level']
+            )
+            db.session.add(new_person)
+            db.session.commit()
+            return new_person
+    
+    @ns_persons.route('/<int:person_id>')
+    @ns_persons.response(404, 'Person not found')
+    @ns_persons.param('person_id', 'The person identifier')
+    class PersonID(Resource):
+        @ns_persons.doc('get_person')
+        @ns_persons.marshal_with(output_person_schema)
+        def get(self, person_id):
+            """Fetch a person given its identifier"""
+            person = Person.query.get(person_id)
+            if not person:
+                ns_persons.abort(404, "Person not found")
+            return person
+
+        @ns_persons.doc('delete_person')
+        @ns_persons.response(204, 'Person deleted')
+        def delete(self, person_id):
+            """Delete a person given its identifier"""
+            person_to_delete = Person.query.get(person_id)
+            if not person_to_delete:
+                ns_persons.abort(404, "Person not found")
+            db.session.delete(person_to_delete)
+            db.session.commit()
+            return f"Person with ID {person_id} has been deleted.", 204
+
+        @ns_persons.doc('update_person')
+        @ns_persons.expect(input_person_schema)
+        @ns_persons.marshal_with(output_person_schema)
+        def put(self, person_id):
+            """Update a person given its identifier"""
+            data = request.json
+            person_to_update = Person.query.get(person_id)
+            if person_to_update:
+                person_to_update.name = data['name']
+                person_to_update.address = data['address']
+                person_to_update.contact_level = data['contact_level']
+                db.session.commit()
+                return person_to_update
+            ns_persons.abort(404, "Person not found")
+
+    # Routes for Invoice
+    @ns_invoices.route('/')
+    class InvoiceList(Resource):
+        @ns_invoices.doc('list_invoices')
+        @ns_invoices.marshal_list_with(output_invoice_schema)
+        def get(self):
+            """List all invoices"""
+            return Invoice.query.all()
+    
+        @ns_invoices.doc('create_invoice')
+        @ns_invoices.expect(input_invoice_schema)
+        @ns_invoices.marshal_with(output_invoice_schema)
+        def post(self):
+            """Create a new invoice"""
+            data = request.json
+            id_sender = data['id_sender']
+            id_recipient = data['id_recipient']
+            id_product = data['id_product']
+            id_user = data['id_user']
+
+            if not Person.query.get(id_sender):
+                ns_invoices.abort(404, "Sender not found")
+
+            if not Person.query.get(id_recipient):
+                ns_invoices.abort(404, "Recipient not found")
+
+            if not ProductService.query.get(id_product):
+                ns_invoices.abort(404, "Product not found")
+
+            if not User.query.get(id_user):
+                ns_invoices.abort(404, "User not found")
+            
+            
+            new_invoice = Invoice(
+                id_sender=data['id_sender'], 
+                id_recipient=data['id_recipient'],
+                id_product=data['id_product'],
+                date=data['date'],
+                total_amount=data['total_amount'],
+                id_user=data['id_user']
+        )
+            db.session.add(new_invoice)
+            db.session.commit()
+            return new_invoice
+    
+    @ns_invoices.route('/<int:invoice_id>')
+    @ns_invoices.response(404, 'Invoice not found')
+    @ns_invoices.param('invoice_id', 'The invoice identifier')
+    class InvoiceID(Resource):
+        @ns_invoices.doc('get_invoice')
+        @ns_invoices.marshal_with(output_invoice_schema)
+        def get(self, invoice_id):
+            """Fetch an invoice given its identifier"""
+            invoice = Invoice.query.get(invoice_id)
+            if not invoice:
+                ns_invoices.abort(404, "Invoice not found")
+            return invoice
+
+        @ns_invoices.doc('delete_invoice')
+        @ns_invoices.response(204, 'Invoice deleted')
+        def delete(self, invoice_id):
+            """Delete an invoice given its identifier"""
+            invoice_to_delete = Invoice.query.get(invoice_id)
+            if not invoice_to_delete:
+                ns_invoices.abort(404, "Invoice not found")
+            db.session.delete(invoice_to_delete)
+            db.session.commit()
+            return f"Invoice with ID {invoice_id} has been deleted.", 204
+
+        @ns_invoices.doc('update_invoice')
+        @ns_invoices.expect(input_invoice_schema)
+        @ns_invoices.marshal_with(output_invoice_schema)
+        def put(self, invoice_id):
+            """Update an invoice given its identifier"""
+            data = request.json
+            invoice_to_update = Invoice.query.get(invoice_id)
+            if invoice_to_update:
+                invoice_to_update.id_sender = data['id_sender']
+                invoice_to_update.id_recipient = data['id_recipient']
+                invoice_to_update.id_product = data['id_product']
+                invoice_to_update.date = data['date']
+                invoice_to_update.total_amount = data['total_amount']
+                invoice_to_update.id_user = data['id_user']
+                db.session.commit()
+                return invoice_to_update
+            ns_invoices.abort(404, "Invoice not found")
