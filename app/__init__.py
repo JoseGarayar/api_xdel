@@ -6,6 +6,7 @@ from flask_jwt_extended import JWTManager
 from flask_restx import Api
 # App
 from app.constants import (
+    ENV,
     SECRET_KEY,
     JWT_SECRET_KEY,
     POSTGRES_USER,
@@ -40,6 +41,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['ERROR_404_HELP'] = False
+    app.config['DEBUG'] = True if ENV == 'development' else False
     
     db.init_app(app)
     bcrypt.init_app(app)

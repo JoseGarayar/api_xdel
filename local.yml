@@ -1,5 +1,3 @@
-version: '3'
-
 volumes:
   local_xdel_postgres_data: {}
   local_xdel_postgres_data_backups: {}
@@ -8,7 +6,7 @@ services:
   flask:
     build:
       context: .
-      dockerfile: ./compose/flask/Dockerfile
+      dockerfile: ./compose/local/flask/Dockerfile
     image: xdel_api_local
     container_name: xdel_api_local
     depends_on:
@@ -25,7 +23,7 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: ./compose/postgres/Dockerfile
+      dockerfile: ./compose/local/postgres/Dockerfile
     image: xdel_api_postgres_local
     container_name: xdel_api_postgres_local
     volumes:

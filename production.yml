@@ -1,0 +1,13 @@
+services:
+  flask:
+    build:
+      context: .
+      dockerfile: ./compose/production/flask/Dockerfile
+    image: xdel_api_production
+    container_name: xdel_api_production
+    env_file:
+      - ./.envs/.production/.flask.env
+      - ./.envs/.production/.postgres.env
+    ports:
+      - "80:5000"
+    command: /start
