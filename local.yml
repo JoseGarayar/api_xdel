@@ -76,7 +76,7 @@ services:
       context: .
       dockerfile: ./compose/local/postgres/Dockerfile
     image: xdel_api_postgres_local
-    container_name: xdel_api_postgres_local_4
+    container_name: xdel_api_postgres_local
     volumes:
       - local_xdel_postgres_data:/var/lib/postgresql/data
       - local_xdel_postgres_data_backups:/backups
