@@ -4,6 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from flask_restx import Api
+# SQLAlchemy
+from sqlalchemy.schema import CreateSchema
 # App
 from constants import (
     ENV,
@@ -52,6 +54,9 @@ def create_app():
     register_routes(api)
 
     with app.app_context():
+        with db.engine.connect() as conn:
+            conn.execute(CreateSchema("Security", if_not_exists=True))
+            conn.commit()
         db.create_all()
 
     return app

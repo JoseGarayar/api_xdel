@@ -21,18 +21,9 @@ def register_routes(api):
     ns_test = api.namespace('', description='Endpoints for testing')
     ns_login = api.namespace('login', description='Endpoints for login')
     ns_users = api.namespace('users', description='User operations')
-
-    ns_persons = api.namespace('persons', description='Person operations')
-    ns_invoices = api.namespace('invoices', description='Invoice operations')
-    ns_invoice_details = api.namespace('invoice_details', description='Invoice detail operations')
-    ns_product_services = api.namespace('product_services', description='Product service operations')
-    ns_couriers = api.namespace('couriers', description='Courier operations')
-    ns_roles = api.namespace('roles', description='Role operations')
-    ns_permissions = api.namespace('permissions', description='Permission operations')
-    ns_role_permissions = api.namespace('role_permissions', description='Role permission operations')
-    ns_user_roles = api.namespace('user_roles', description='User role operations')
-    ns_shipments = api.namespace('shipments', description='Shipment operations')
-    ns_shipment_states = api.namespace('shipment_states', description='Shipment state operations')
+    ns_roles = api.namespace('roles', description='User roles')
+    ns_logs = api.namespace('logs', description='User logs')
+    ns_access_controls = api.namespace('access_controls', description='User access controls')
 
     # Routes
     @ns_test.route('/hello')
@@ -58,18 +49,18 @@ def register_routes(api):
         @ns_login.expect(login_schema)
         def post(self):
             """
-            Authenticate a user based on email and password and return a JWT access token.
+            Authenticate a user based on username and password and return a JWT access token.
             """
             data = request.json
-            email = data.get('email')
+            username = data.get('username')
             password = data.get('password')
-            if not email or not password:
-                ns_login.abort(400, "Email and password are required")
-            user = User.query.filter_by(email=email).first()
+            if not username or not password:
+                ns_login.abort(400, "Username and password are required")
+            user = User.query.filter_by(username=username).first()
             if not user:
-                ns_login.abort(400, "User with email provided doesn't exist")
+                ns_login.abort(400, "User with username provided doesn't exist")
             if check_valid_password(user.hashed_password, password):
-                access_token = create_access_token(identity=user.email)
+                access_token = create_access_token(identity=user.username)
                 return {
                     'message': 'Login successful', 
                     'access_token': access_token
@@ -79,22 +70,23 @@ def register_routes(api):
     @ns_users.route('/')
     class UserList(Resource):
         @ns_users.doc('list_users')
-        @ns_users.marshal_list_with(user_schema)
+        @ns_users.marshal_list_with(user_output_schema)
         def get(self):
             """List all users"""
             return User.query.all()
         
         @ns_users.doc('create_user')
-        @ns_users.expect(login_schema)
-        @ns_users.marshal_with(user_schema)
+        @ns_users.expect(user_input_schema)
+        @ns_users.marshal_with(user_output_schema)
         def post(self):
             """Create a new user"""
             data = request.json
-            if User.query.filter_by(email=data['email']).first() is not None:
-                ns_users.abort(400, "Email already exists")
+            if User.query.filter_by(username=data['username']).first() is not None:
+                ns_users.abort(400, "Username already exists")
             new_user = User(
-                email=data['email'], 
-                hashed_password=hash_password(data['password'])
+                username=data['username'], 
+                hashed_password=hash_password(data['password']),
+                role_id=data['role_id']
             )
             db.session.add(new_user)
             db.session.commit()
@@ -105,7 +97,7 @@ def register_routes(api):
     @ns_users.param('user_id', 'The user identifier')
     class UserID(Resource):
         @ns_users.doc('get_user')
-        @ns_users.marshal_with(user_schema)
+        @ns_users.marshal_with(user_output_schema)
         def get(self, user_id):
             """Fetch a user given its identifier"""
             user = User.query.get(user_id)
@@ -126,165 +118,216 @@ def register_routes(api):
             
 
         @ns_users.doc('update_user')
-        @ns_users.expect(login_schema)
-        @ns_users.marshal_with(user_schema)
+        @ns_users.expect(user_input_schema)
+        @ns_users.marshal_with(user_output_schema)
         def put(self, user_id):
             """Update a user given its identifier"""
             data = request.json
             user_to_update = User.query.get(user_id)
             if user_to_update:
-                user_to_update.email = data['email']
+                user_to_update.username = data['username']
                 user_to_update.hashed_password = hash_password(data['password'])
+                user_to_update.role_id = data['role_id']
                 db.session.commit()
                 return user_to_update
             ns_users.abort(404, "User not found")
 
-    # Routes for Person
-    @ns_persons.route('/')
-    class PersonList(Resource):
-        @ns_persons.doc('list_persons')
-        @ns_persons.marshal_list_with(output_person_schema)
+    # Routes for Role
+    @ns_roles.route('/')
+    class RoleList(Resource):
+        @ns_roles.doc('list_roles')
+        @ns_roles.marshal_list_with(role_output_schema)
         def get(self):
             """List all persons"""
-            return Person.query.all()
+            return Role.query.all()
     
-        @ns_persons.doc('create_person')
-        @ns_persons.expect(input_person_schema)
-        @ns_persons.marshal_with(output_person_schema)
+        @ns_roles.doc('create_person')
+        @ns_roles.expect(role_input_schema)
+        @ns_roles.marshal_with(role_output_schema)
         def post(self):
             """Create a new person"""
             data = request.json
-            new_person = Person(
-                name=data['name'], 
-                address=data['address'],
-                contact_level=data['contact_level']
-            )
+            new_person = Role(name=data['name'])
             db.session.add(new_person)
             db.session.commit()
             return new_person
     
-    @ns_persons.route('/<int:person_id>')
-    @ns_persons.response(404, 'Person not found')
-    @ns_persons.param('person_id', 'The person identifier')
-    class PersonID(Resource):
-        @ns_persons.doc('get_person')
-        @ns_persons.marshal_with(output_person_schema)
-        def get(self, person_id):
-            """Fetch a person given its identifier"""
-            person = Person.query.get(person_id)
-            if not person:
-                ns_persons.abort(404, "Person not found")
-            return person
+    @ns_roles.route('/<int:role_id>')
+    @ns_roles.response(404, 'Role not found')
+    @ns_roles.param('role_id', 'The role identifier')
+    class RoleID(Resource):
+        @ns_roles.doc('get_role')
+        @ns_roles.marshal_with(role_output_schema)
+        def get(self, role_id):
+            """Fetch a role given its identifier"""
+            role = Role.query.get(role_id)
+            if not role:
+                ns_roles.abort(404, "Role not found")
+            return role
 
-        @ns_persons.doc('delete_person')
-        @ns_persons.response(204, 'Person deleted')
-        def delete(self, person_id):
-            """Delete a person given its identifier"""
-            person_to_delete = Person.query.get(person_id)
-            if not person_to_delete:
-                ns_persons.abort(404, "Person not found")
-            db.session.delete(person_to_delete)
+        @ns_roles.doc('delete_role')
+        @ns_roles.response(204, 'Role deleted')
+        def delete(self, role_id):
+            """Delete a role given its identifier"""
+            role_to_delete = Role.query.get(role_id)
+            if not role_to_delete:
+                ns_roles.abort(404, "Role not found")
+            db.session.delete(role_to_delete)
             db.session.commit()
-            return f"Person with ID {person_id} has been deleted.", 204
+            return f"Role with ID {role_id} has been deleted.", 204
 
-        @ns_persons.doc('update_person')
-        @ns_persons.expect(input_person_schema)
-        @ns_persons.marshal_with(output_person_schema)
-        def put(self, person_id):
-            """Update a person given its identifier"""
+        @ns_roles.doc('update_role')
+        @ns_roles.expect(role_input_schema)
+        @ns_roles.marshal_with(role_output_schema)
+        def put(self, role_id):
+            """Update a role given its identifier"""
             data = request.json
-            person_to_update = Person.query.get(person_id)
-            if person_to_update:
-                person_to_update.name = data['name']
-                person_to_update.address = data['address']
-                person_to_update.contact_level = data['contact_level']
+            role_to_update = Role.query.get(role_id)
+            if role_to_update:
+                role_to_update.name = data['name']
                 db.session.commit()
-                return person_to_update
-            ns_persons.abort(404, "Person not found")
+                return role_to_update
+            ns_roles.abort(404, "Role not found")
 
-    # Routes for Invoice
-    @ns_invoices.route('/')
-    class InvoiceList(Resource):
-        @ns_invoices.doc('list_invoices')
-        @ns_invoices.marshal_list_with(output_invoice_schema)
+    # Routes for Log
+    @ns_logs.route('/')
+    class LogList(Resource):
+        @ns_logs.doc('list_logs')
+        @ns_logs.marshal_list_with(log_output_schema)
         def get(self):
-            """List all invoices"""
-            return Invoice.query.all()
+            """List all logs"""
+            return Log.query.all()
     
-        @ns_invoices.doc('create_invoice')
-        @ns_invoices.expect(input_invoice_schema)
-        @ns_invoices.marshal_with(output_invoice_schema)
+        @ns_logs.doc('create_log')
+        @ns_logs.expect(log_input_schema)
+        @ns_logs.marshal_with(log_output_schema)
         def post(self):
-            """Create a new invoice"""
+            """Create a new log"""
             data = request.json
-            id_sender = data['id_sender']
-            id_recipient = data['id_recipient']
-            id_product = data['id_product']
-            id_user = data['id_user']
+            user_id = data['user_id']
+            action = data['action']
+            timestamp = data['timestamp']
 
-            if not Person.query.get(id_sender):
-                ns_invoices.abort(404, "Sender not found")
-
-            if not Person.query.get(id_recipient):
-                ns_invoices.abort(404, "Recipient not found")
-
-            if not ProductService.query.get(id_product):
-                ns_invoices.abort(404, "Product not found")
-
-            if not User.query.get(id_user):
-                ns_invoices.abort(404, "User not found")
+            if not User.query.get(user_id):
+                ns_logs.abort(404, "User not found")
             
-            
-            new_invoice = Invoice(
-                id_sender=data['id_sender'], 
-                id_recipient=data['id_recipient'],
-                id_product=data['id_product'],
-                date=data['date'],
-                total_amount=data['total_amount'],
-                id_user=data['id_user']
+            new_log = Log(
+                user_id=user_id, 
+                action=action,
+                timestamp=timestamp,
         )
-            db.session.add(new_invoice)
+            db.session.add(new_log)
             db.session.commit()
-            return new_invoice
+            return new_log
     
-    @ns_invoices.route('/<int:invoice_id>')
-    @ns_invoices.response(404, 'Invoice not found')
-    @ns_invoices.param('invoice_id', 'The invoice identifier')
-    class InvoiceID(Resource):
-        @ns_invoices.doc('get_invoice')
-        @ns_invoices.marshal_with(output_invoice_schema)
-        def get(self, invoice_id):
-            """Fetch an invoice given its identifier"""
-            invoice = Invoice.query.get(invoice_id)
-            if not invoice:
-                ns_invoices.abort(404, "Invoice not found")
-            return invoice
+    @ns_logs.route('/<int:log_id>')
+    @ns_logs.response(404, 'Log not found')
+    @ns_logs.param('log_id', 'The log identifier')
+    class LogID(Resource):
+        @ns_logs.doc('get_log')
+        @ns_logs.marshal_with(log_output_schema)
+        def get(self, log_id):
+            """Fetch a log given its identifier"""
+            log = Log.query.get(log_id)
+            if not log:
+                ns_logs.abort(404, "Log not found")
+            return log
 
-        @ns_invoices.doc('delete_invoice')
-        @ns_invoices.response(204, 'Invoice deleted')
-        def delete(self, invoice_id):
-            """Delete an invoice given its identifier"""
-            invoice_to_delete = Invoice.query.get(invoice_id)
-            if not invoice_to_delete:
-                ns_invoices.abort(404, "Invoice not found")
-            db.session.delete(invoice_to_delete)
+        @ns_logs.doc('delete_log')
+        @ns_logs.response(204, 'Log deleted')
+        def delete(self, log_id):
+            """Delete a log given its identifier"""
+            log_to_delete = Log.query.get(log_id)
+            if not log_to_delete:
+                ns_logs.abort(404, "Log not found")
+            db.session.delete(log_to_delete)
             db.session.commit()
-            return f"Invoice with ID {invoice_id} has been deleted.", 204
+            return f"Log with ID {log_id} has been deleted.", 204
 
-        @ns_invoices.doc('update_invoice')
-        @ns_invoices.expect(input_invoice_schema)
-        @ns_invoices.marshal_with(output_invoice_schema)
-        def put(self, invoice_id):
-            """Update an invoice given its identifier"""
+        @ns_logs.doc('update_log')
+        @ns_logs.expect(log_input_schema)
+        @ns_logs.marshal_with(log_output_schema)
+        def put(self, log_id):
+            """Update a log given its identifier"""
             data = request.json
-            invoice_to_update = Invoice.query.get(invoice_id)
-            if invoice_to_update:
-                invoice_to_update.id_sender = data['id_sender']
-                invoice_to_update.id_recipient = data['id_recipient']
-                invoice_to_update.id_product = data['id_product']
-                invoice_to_update.date = data['date']
-                invoice_to_update.total_amount = data['total_amount']
-                invoice_to_update.id_user = data['id_user']
+            log_to_update = Log.query.get(log_id)
+            if log_to_update:
+                log_to_update.user_id = data['user_id']
+                log_to_update.action = data['action']
+                log_to_update.timestamp = data['timestamp']
                 db.session.commit()
-                return invoice_to_update
-            ns_invoices.abort(404, "Invoice not found")
+                return log_to_update
+            ns_logs.abort(404, "Log not found")
+
+    # Routes for Access Control
+    @ns_access_controls.route('/')
+    class AccessControlList(Resource):
+        @ns_access_controls.doc('list_access_control')
+        @ns_access_controls.marshal_list_with(access_control_output_schema)
+        def get(self):
+            """List all access controls"""
+            return AccessControl.query.all()
+    
+        @ns_access_controls.doc('create_access_control')
+        @ns_access_controls.expect(access_control_input_schema)
+        @ns_access_controls.marshal_with(access_control_output_schema)
+        def post(self):
+            """Create a new access control"""
+            data = request.json
+            role_id = data['role_id']
+            resource = data['resource']
+            read_permission = data['read_permission']
+            write_permission = data['write_permission']
+
+            if not Role.query.get(role_id):
+                ns_access_controls.abort(404, "Role not found")
+            
+            new_access_control = AccessControl(
+                role_id=role_id, 
+                resource=resource,
+                read_permission=read_permission,
+                write_permission=write_permission
+        )
+            db.session.add(new_access_control)
+            db.session.commit()
+            return new_access_control
+    
+    @ns_access_controls.route('/<int:access_control_id>')
+    @ns_access_controls.response(404, 'Access Control not found')
+    @ns_access_controls.param('access_control_id', 'The access control identifier')
+    class AccessControlID(Resource):
+        @ns_access_controls.doc('get_access_control')
+        @ns_access_controls.marshal_with(access_control_output_schema)
+        def get(self, access_control_id):
+            """Fetch an access control given its identifier"""
+            access_control = AccessControl.query.get(access_control_id)
+            if not access_control:
+                ns_access_controls.abort(404, "Access Control not found")
+            return access_control
+
+        @ns_access_controls.doc('delete_access_control')
+        @ns_access_controls.response(204, 'Access control deleted')
+        def delete(self, access_control_id):
+            """Delete an access control given its identifier"""
+            access_control_to_delete = AccessControl.query.get(access_control_id)
+            if not access_control_to_delete:
+                ns_access_controls.abort(404, "Access control not found")
+            db.session.delete(access_control_to_delete)
+            db.session.commit()
+            return f"Access control with ID {access_control_id} has been deleted.", 204
+
+        @ns_access_controls.doc('update_access_control')
+        @ns_access_controls.expect(access_control_input_schema)
+        @ns_access_controls.marshal_with(access_control_output_schema)
+        def put(self, access_control_id):
+            """Update an access control given its identifier"""
+            data = request.json
+            access_control_to_update = AccessControl.query.get(access_control_id)
+            if access_control_to_update:
+                access_control_to_update.role_id = data['role_id']
+                access_control_to_update.resource = data['resource']
+                access_control_to_update.read_permission = data['read_permission']
+                access_control_to_update.write_permission = data['write_permission']
+                db.session.commit()
+                return access_control_to_update
+            ns_access_controls.abort(404, "Access control not found")
