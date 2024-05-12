@@ -1,5 +1,5 @@
 from flask_restx import fields
-from app import api
+from __init__ import api
 
 login_schema = api.model('Login', {
     'email': fields.String(required=True, description='The user email address'),

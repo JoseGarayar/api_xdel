@@ -5,7 +5,7 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from flask_restx import Api
 # App
-from app.constants import (
+from constants import (
     ENV,
     SECRET_KEY,
     JWT_SECRET_KEY,
@@ -48,7 +48,7 @@ def create_app():
     jwt.init_app(app)
     api.init_app(app)
 
-    from .routes import register_routes
+    from routes import register_routes
     register_routes(api)
 
     with app.app_context():

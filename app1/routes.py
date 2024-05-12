@@ -7,9 +7,9 @@ from flask_jwt_extended import (
     get_jwt_identity
 )
 # App
-from app.models import *
-from app.schemas import *
-from app.functions import (
+from models import *
+from schemas import *
+from functions import (
     check_valid_password,
     hash_password
 )

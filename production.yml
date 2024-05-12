@@ -1,13 +1,49 @@
 services:
-  flask:
+  flask1:
     build:
       context: .
       dockerfile: ./compose/production/flask/Dockerfile
     image: xdel_api_production
-    container_name: xdel_api_production
+    container_name: xdel_api_production_1
     env_file:
       - ./.envs/.production/.flask.env
       - ./.envs/.production/.postgres.env
     ports:
-      - "80:5000"
+      - "8080:5000"
+    command: /start
+  flask2:
+    build:
+      context: .
+      dockerfile: ./compose/production/flask/Dockerfile
+    image: xdel_api_production
+    container_name: xdel_api_production_2
+    env_file:
+      - ./.envs/.production/.flask.env
+      - ./.envs/.production/.postgres.env
+    ports:
+      - "8081:5000"
+    command: /start
+  flask3:
+    build:
+      context: .
+      dockerfile: ./compose/production/flask/Dockerfile
+    image: xdel_api_production
+    container_name: xdel_api_production_3
+    env_file:
+      - ./.envs/.production/.flask.env
+      - ./.envs/.production/.postgres.env
+    ports:
+      - "8082:5000"
+    command: /start
+  flask4:
+    build:
+      context: .
+      dockerfile: ./compose/production/flask/Dockerfile
+    image: xdel_api_production
+    container_name: xdel_api_production_4
+    env_file:
+      - ./.envs/.production/.flask.env
+      - ./.envs/.production/.postgres.env
+    ports:
+      - "8083:5000"
     command: /start
