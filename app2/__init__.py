@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from flask_restx import Api
+from sqlalchemy import text
 # App
 from constants import (
     ENV,
@@ -32,7 +33,7 @@ api = Api(version='1.0', title='XDel API',
         description='API for XDel Singapore',
         authorizations=authorizations,
         security='Bearer Auth')
-
+    
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = SECRET_KEY
