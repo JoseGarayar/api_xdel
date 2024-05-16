@@ -1,109 +1,44 @@
 from __init__ import db
 
 
-class User(db.Model):
-    __tablename__ = "users"
-
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String, unique=True, index=True)
-    hashed_password = db.Column(db.String)
-    is_active = db.Column(db.Boolean, default=True)
-
-class Person(db.Model):
-    __tablename__ = "person"
-
-    id_person = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255))
-    address = db.Column(db.String(255))
-    contact_level = db.Column(db.String(50))
-
-
-class Invoice(db.Model):
-    __tablename__ = "invoice"
-
-    id_invoice = db.Column(db.Integer, primary_key=True)
-    id_sender = db.Column(db.Integer, db.ForeignKey('person.id_person'))
-    id_recipient = db.Column(db.Integer, db.ForeignKey('person.id_person'))
-    id_product = db.Column(db.Integer, db.ForeignKey('product_service.id_product'))
-    date = db.Column(db.Date)
-    total_amount = db.Column(db.DECIMAL(10, 2))
-    id_user = db.Column(db.Integer)
-    sender = db.relationship("Person", foreign_keys=[id_sender])
-    recipient = db.relationship("Person", foreign_keys=[id_recipient])
-
-
-class InvoiceDetail(db.Model):
-    __tablename__ = "invoice_detail"
-
-    id_detail = db.Column(db.Integer, primary_key=True)
-    id_invoice = db.Column(db.Integer, db.ForeignKey('invoice.id_invoice'))
-    package_type = db.Column(db.String(50))
-    dimensions = db.Column(db.String(255))
-    weight = db.Column(db.DECIMAL(10, 2))
-    quantity = db.Column(db.Integer)
-    unit_price = db.Column(db.DECIMAL(10, 2))
-    subtotal = db.Column(db.DECIMAL(10, 2))
-
-
-class ProductService(db.Model):
-    __tablename__ = "product_service"
-
-    id_product = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255))
-    description = db.Column(db.Text)
-    price = db.Column(db.DECIMAL(10, 2))
-
-
-class Courier(db.Model):
-    __tablename__ = "courier"
-
-    id_courier = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255))
-    address = db.Column(db.String(255))
-
 class Role(db.Model):
-    __tablename__ = "role"
+    __tablename__ = 'Role'
+    __table_args__ = {'schema': 'Security'}
 
-    id_role = db.Column(db.Integer, primary_key=True)
-    role_name = db.Column(db.String(255))
-    description = db.Column(db.Text)
-
-
-class Permission(db.Model):
-    __tablename__ = "permission"
-
-    id_permission = db.Column(db.Integer, primary_key=True)
-    permission_name = db.Column(db.String(255))
-    description = db.Column(db.Text)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), nullable=False)
+    users = db.relationship("User", back_populates="role")
+    access_controls = db.relationship("AccessControl", back_populates="role")
 
 
-class RolePermission(db.Model):
-    __tablename__ = "role_permission"
+class User(db.Model):
+    __tablename__ = "User"
+    __table_args__ = {'schema': 'Security'}
 
-    id_role = db.Column(db.Integer, db.ForeignKey('role.id_role'), primary_key=True)
-    id_permission = db.Column(db.Integer, db.ForeignKey('permission.id_permission'), primary_key=True)
-
-
-class UserRole(db.Model):
-    __tablename__ = "user_role"
-
-    id_user = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    id_role = db.Column(db.Integer, db.ForeignKey('role.id_role'), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(50), unique=True, index=True)
+    hashed_password = db.Column(db.String(255))
+    role_id = db.Column(db.Integer, db.ForeignKey('Security.Role.id'), nullable=False)
+    role = db.relationship("Role", back_populates="users")
+    logs = db.relationship("Log", back_populates="user")
 
 
-class Shipment(db.Model):
-    __tablename__ = "shipment"
+class Log(db.Model):
+    __tablename__ = 'Log'
+    __table_args__ = {'schema': 'Security'}
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('Security.User.id'), nullable=False)
+    user = db.relationship("User", back_populates="logs")
+    action = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False)
 
-    id_shipment = db.Column(db.Integer, primary_key=True)
-    id_invoice = db.Column(db.Integer, db.ForeignKey('invoice.id_invoice'))
-    id_courier = db.Column(db.Integer, db.ForeignKey('courier.id_courier'))
-    id_shipment_state = db.Column(db.Integer, db.ForeignKey('shipment_state.id_shipment_state'))
-    creation_date = db.Column(db.Date)
-    finish_date = db.Column(db.Date)
 
-
-class ShipmentState(db.Model):
-    __tablename__ = "shipment_state"
-
-    id_shipment_state = db.Column(db.Integer, primary_key=True)
-    state_name = db.Column(db.String(255))
+class AccessControl(db.Model):
+    __tablename__ = 'AccessControl'
+    __table_args__ = {'schema': 'Security'}
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('Security.Role.id'), nullable=False)
+    role = db.relationship("Role", back_populates="access_controls")
+    resource = db.Column(db.String(255), nullable=False)
+    read_permission = db.Column(db.Boolean, nullable=False, default=False)
+    write_permission = db.Column(db.Boolean, nullable=False, default=False)

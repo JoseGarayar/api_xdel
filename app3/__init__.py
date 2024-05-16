@@ -1,6 +1,7 @@
 # Flask
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.schema import CreateSchema
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from flask_restx import Api
@@ -51,7 +52,12 @@ def create_app():
     from routes import register_routes
     register_routes(api)
 
+    
     with app.app_context():
+        with db.engine.connect() as conn:
+            conn.execute(CreateSchema("order_schema", if_not_exists=True))
+            conn.commit()
         db.create_all()
+
 
     return app
