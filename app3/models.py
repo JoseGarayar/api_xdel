@@ -23,6 +23,7 @@ class Order(db.Model):
     order_date = db.Column(db.DateTime)
     total_amount = db.Column(db.Numeric)
     shipment_type_id = db.Column(db.Integer, db.ForeignKey('order_schema.Shipment_Type.shipment_type_id'))
+    items = db.relationship("OrderItem", back_populates="order")
 
 class OrderItem(db.Model):
     __tablename__ = 'Order_Item'
@@ -36,5 +37,6 @@ class OrderItem(db.Model):
     height = db.Column(db.Numeric)
     quantity = db.Column(db.Integer)
     price = db.Column(db.Numeric)
+    order = db.relationship("Order", back_populates="items")
 
 
