@@ -1,0 +1,86 @@
+volumes:
+  local_xdel_postgres_data: {}
+  local_xdel_postgres_data_backups: {}
+
+services:
+  flask1:
+    build:
+      context: .
+      dockerfile: ./compose/local/flask/Dockerfile
+    image: xdel_api_local
+    container_name: xdel_api_local_1
+    depends_on:
+      - postgres
+    volumes:
+      - ./app1:/app
+    env_file:
+      - ./.envs/.local/.flask.env
+      - ./.envs/.local/.postgres.env
+    ports:
+      - "5001:5000"
+    command: /start
+
+  flask2:
+    build:
+      context: .
+      dockerfile: ./compose/local/flask/Dockerfile
+    image: xdel_api_local
+    container_name: xdel_api_local_2
+    depends_on:
+      - postgres
+    volumes:
+      - ./app2:/app
+    env_file:
+      - ./.envs/.local/.flask.env
+      - ./.envs/.local/.postgres.env
+    ports:
+      - "5002:5000"
+    command: /start
+
+  flask3:
+    build:
+      context: .
+      dockerfile: ./compose/local/flask/Dockerfile
+    image: xdel_api_local
+    container_name: xdel_api_local_3
+    depends_on:
+      - postgres
+    volumes:
+      - ./app3:/app
+    env_file:
+      - ./.envs/.local/.flask.env
+      - ./.envs/.local/.postgres.env
+    ports:
+      - "5003:5000"
+    command: /start
+
+  flask4:
+    build:
+      context: .
+      dockerfile: ./compose/local/flask/Dockerfile
+    image: xdel_api_local
+    container_name: xdel_api_local_4
+    depends_on:
+      - postgres
+    volumes:
+      - ./app4:/app
+    env_file:
+      - ./.envs/.local/.flask.env
+      - ./.envs/.local/.postgres.env
+    ports:
+      - "5004:5000"
+    command: /start
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./compose/local/postgres/Dockerfile
+    image: xdel_api_postgres_local
+    container_name: xdel_api_postgres_local_4
+    volumes:
+      - local_xdel_postgres_data:/var/lib/postgresql/data
+      - local_xdel_postgres_data_backups:/backups
+    env_file:
+      - ./.envs/.local/.postgres.env
+    ports:
+      - "5432:5432"

@@ -1,6 +1,7 @@
 import os
 
 
+ENV = os.environ.get('FLASK_ENV', 'development')
 SECRET_KEY = os.environ.get("SECRET_KEY", None)
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", None)
 POSTGRES_USER = os.environ.get("POSTGRES_USER", None)
