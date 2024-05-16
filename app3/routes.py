@@ -38,12 +38,12 @@ def register_routes(api):
         @api.marshal_list_with(order_schema)
         def get(self, sender_name):
             """Search orders by SenderName"""
-            return Order.query.filter_by(SenderName=sender_name).all()
+            return Order.query.filter_by(sender_name=sender_name).all()
 
     @ns_order.route('/create')
     class CreateOrder(Resource):
         @api.doc('create_order')
-        @api.expect(order_schema)
+        @api.expect(order_schema_input)
         @api.marshal_with(order_schema)
         def post(self):
             """Create a new order with items"""
@@ -67,13 +67,13 @@ def register_routes(api):
             return ShipmentType.query.all()
         
         @api.doc('Create_Shipment_Type')
-        @api.expect(shipment_type_schema)
+        @api.expect(shipment_type_schema_input)
         @api.marshal_with(shipment_type_schema)
         def post(self):
             """
             Create a new shipment type.
             """
-            data = request.get_json()
+            data = request.json
             new_shipment_type = ShipmentType(
                 shipment_type_name=data['shipment_type_name'],
                 description=data['description']

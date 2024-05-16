@@ -23,13 +23,7 @@ class Shipment(db.Model):
     delivery_date = db.Column(db.DateTime)
     estimated_delivery_date = db.Column(db.DateTime)
     actual_delivery_date = db.Column(db.DateTime)
-
-class Package(db.Model):
-    __tablename__ = 'Package'
-    __table_args__ = {'schema': 'shipment_schema'}
-    package_id = db.Column(db.Integer, primary_key=True)
-    shipment_id = db.Column(db.Integer, db.ForeignKey('shipment_schema.Shipment.shipment_id'))
-    package_status = db.Column(db.Integer)
+    events = db.relationship("Event", back_populates="shipment")
 
 class Event(db.Model):
     __tablename__ = 'Event'
@@ -39,4 +33,5 @@ class Event(db.Model):
     shipment_status_id = db.Column(db.Integer, db.ForeignKey('shipment_schema.Shipment_Status.shipment_status_id'))
     event_date = db.Column(db.DateTime)
     comment = db.Column(db.String)
+    shipment = db.relationship("Shipment", back_populates="events")
 

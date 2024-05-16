@@ -4,7 +4,7 @@ from flask_restx import Resource
 # App
 from models import *
 from schemas import *
-
+from datetime import datetime
 
 def register_routes(api):
     # Namespaces
@@ -28,7 +28,7 @@ def register_routes(api):
             """List all shipments"""
             return Shipment.query.all()
 
-        @api.expect(shipment_schema)
+        @api.expect(shipment_schema_input)
         @api.marshal_with(shipment_schema)
         def post(self):
             """Create a new shipment"""
@@ -37,6 +37,9 @@ def register_routes(api):
             db.session.commit()
             return new_shipment, 201
 
+
+        
+        
     @ns_shipment.route('/<int:shipment_id>')
     class ShipmentItem(Resource):
         @api.marshal_with(shipment_schema)
@@ -44,6 +47,13 @@ def register_routes(api):
             """Retrieve a specific shipment"""
             return Shipment.query.filter_by(shipment_id=shipment_id).first()
 
+    @ns_shipment.route('/<string:tracking_number>')
+    class ShipmentItem(Resource):
+        @api.marshal_with(shipment_schema)
+        def get(self, tracking_number):
+            """Retrieve a specific shipment"""
+            return Shipment.query.filter_by(tracking_number=tracking_number).first()
+        
     # Event Routes
     @ns_event.route('/')
     class EventList(Resource):
@@ -51,15 +61,38 @@ def register_routes(api):
         def get(self):
             """List all events"""
             return Event.query.all()
-
-        @api.expect(event_schema)
+        
+        @api.doc('register_an_event')
+        @api.expect(event_schema_input)
         @api.marshal_with(event_schema)
         def post(self):
             """Create a new event"""
-            new_event = Event(**request.json)
-            db.session.add(new_event)
-            db.session.commit()
-            return new_event, 201
+
+            data = request.json
+            # Obtener el envío
+            shipment = Shipment.query.get(data['shipment_id'])
+            
+            if shipment:
+                # Crear un nuevo evento
+                new_event = Event(
+                    shipment_id=data['shipment_id'],
+                    shipment_status_id=data['shipment_status_id'],
+                    event_date= datetime.now(),  # Usar la fecha y hora actual como fecha del evento
+                    comment=data['comment']
+                )
+                db.session.add(new_event)
+                
+                # Actualizar el estado del envío y la fecha de entrega actual (si es necesario)
+                shipment.shipment_status_id = data['shipment_status_id']
+                if data['shipment_status_id'] == 4:  # 4 es el ID para "Delivered"
+                    shipment.actual_delivery_date = datetime.now()
+                
+                db.session.commit()
+                return new_event                    
+            else:
+                api.abort(404, "Shipment not found")
+            
+
 
     @ns_event.route('/<int:event_id>')
     class EventItem(Resource):
@@ -76,7 +109,7 @@ def register_routes(api):
             """List all shipment statuses"""
             return ShipmentStatus.query.all()
 
-        @api.expect(shipment_status_schema)
+        @api.expect(shipment_status_schema_input)
         @api.marshal_with(shipment_status_schema)
         def post(self):
             """Create a new shipment status"""
@@ -87,7 +120,7 @@ def register_routes(api):
 
     @ns_shipment_status.route('/<int:shipment_status_id>')
     class ShipmentStatusItem(Resource):
-        
+
         @api.marshal_with(shipment_status_schema)
         def get(self, shipment_status_id):
             return ShipmentStatus.query.filter_by(shipment_status_id=shipment_status_id).first()
