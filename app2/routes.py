@@ -34,12 +34,12 @@ def register_routes(api):
             """Create a new customer"""
             data = request.json
             print(list(data.keys()))
-            if Customer.query.filter_by(name = data['name']).first() is not None:
+            if Customer.query.filter_by(email = data['email']).first() is not None:
                 ns_customer.abort(400, "Customer already exists")
             new_customer = Customer(type_id = data['type_id'],
                                     name = data['name'],
-                                    company = data['company'],
-                                    default_address_id = data['default_address_id'])
+                                    email = data['email'],
+                                    company = data['company'])
             db.session.add(new_customer)
             db.session.commit()
             return new_customer
@@ -54,7 +54,7 @@ def register_routes(api):
             """Fetch a customer given its identifier"""
             customer = Customer.query.get(customer_id)
             if not customer:
-                ns_customer.abort(404, "User not found")
+                ns_customer.abort(404, "Customer not found")
             return customer
 
         @ns_customer.doc('delete_customer')
@@ -63,7 +63,7 @@ def register_routes(api):
             """Delete a customer given its identifier"""
             customer_to_delete = Customer.query.get(customer_id)
             if not customer_to_delete:
-                ns_customer.abort(404, "User not found")
+                ns_customer.abort(404, "Customer not found")
             db.session.delete(customer_to_delete)
             db.session.commit()
             return f"Customer with ID {customer_id} has been deleted.", 204
@@ -77,11 +77,11 @@ def register_routes(api):
             data = request.json
             customer_to_update = Customer.query.get(customer_id)
             if customer_to_update:
-                customer_to_update.customer_id = data['customer_id']
                 customer_to_update.type_id = data['type_id']
                 customer_to_update.name = data['name']
+                customer_to_update.email = data['email']
                 customer_to_update.company = data['company']
-                customer_to_update.default_address_id = data['default_address_id']
+
                 db.session.commit()
                 return customer_to_update
             ns_customer.abort(404, "Customer not found")
@@ -103,6 +103,10 @@ def register_routes(api):
             data = request.json
             if Address.query.filter_by(customer_id = data['customer_id']).first() is not None:
                 ns_address.abort(400, "User with Address already exists")
+
+            if Customer.query.get(data['customer_id']) is None:
+                ns_address.abort(400, "User does not exist")
+
             new_address = Address(customer_id = data['customer_id'],
                                   address = data['address'],
                                   address_2 = data['address_2'],
@@ -110,11 +114,7 @@ def register_routes(api):
                                   suburb = data['suburb'],
                                   city = data['city'],
                                   state = data['state'],
-                                  country = data['country'],
-                                  email = data['email'],
-                                  phone = data['phone'],
-                                  sms_enabled = data['sms_enabled'],
-                                  vat_tax_id = data['vat_tax_id'])
+                                  country = data['country'])
 
             db.session.add(new_address)
             db.session.commit()
@@ -161,10 +161,6 @@ def register_routes(api):
                 address_to_update.city = data['city']
                 address_to_update.state = data['state']
                 address_to_update.country = data['country']
-                address_to_update.email = data['email']
-                address_to_update.phone = data['phone']
-                address_to_update.sms_enabled = data['sms_enabled']
-                address_to_update.vat_tax_id = data['vat_tax_id']
                 db.session.commit()
                 return address_to_update
             ns_address.abort(404, "Address not found")
