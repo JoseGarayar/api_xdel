@@ -18,7 +18,7 @@ from functions import (
 
 def register_routes(api):
     # Namespaces
-    ns_test = api.namespace('', description='Endpoints for testing')
+    # ns_test = api.namespace('', description='Endpoints for testing')
     ns_login = api.namespace('login', description='Endpoints for login')
     ns_users = api.namespace('users', description='User operations')
     ns_roles = api.namespace('roles', description='User roles')
@@ -26,23 +26,23 @@ def register_routes(api):
     ns_access_controls = api.namespace('access_controls', description='User access controls')
 
     # Routes
-    @ns_test.route('/hello')
-    class Hello(Resource):
-        def get(self):
-            """Return a simple message to any public requester."""
-            return {'hello': 'world'}
+    # @ns_test.route('/hello')
+    # class Hello(Resource):
+    #     def get(self):
+    #         """Return a simple message to any public requester."""
+    #         return {'hello': 'world'}
         
-    @ns_test.route('/protected')
-    class Protected(Resource):
-        @jwt_required()
-        def get(self):
-            """
-            Provide the current logged-in user's identifier to authenticated requests. 
-            It requires the requester to be authenticated.
-            This endpoint is useful for verifying token validity and user authentication status.
-            """
-            current_user = get_jwt_identity()
-            return {'logged_in_as': current_user}
+    # @ns_test.route('/protected')
+    # class Protected(Resource):
+    #     @jwt_required()
+    #     def get(self):
+    #         """
+    #         Provide the current logged-in user's identifier to authenticated requests. 
+    #         It requires the requester to be authenticated.
+    #         This endpoint is useful for verifying token validity and user authentication status.
+    #         """
+    #         current_user = get_jwt_identity()
+    #         return {'logged_in_as': current_user}
     
     @ns_login.route('/')
     class Login(Resource):
@@ -69,12 +69,14 @@ def register_routes(api):
 
     @ns_users.route('/')
     class UserList(Resource):
+        @jwt_required()
         @ns_users.doc('list_users')
         @ns_users.marshal_list_with(user_output_schema)
         def get(self):
             """List all users"""
-            return User.query.all()
+            return User.query.order_by(User.id).all()
         
+        @jwt_required()
         @ns_users.doc('create_user')
         @ns_users.expect(user_input_schema)
         @ns_users.marshal_with(user_output_schema)
@@ -83,6 +85,8 @@ def register_routes(api):
             data = request.json
             if User.query.filter_by(username=data['username']).first() is not None:
                 ns_users.abort(400, "Username already exists")
+            if not Role.query.get(data['role_id']):
+                ns_users.abort(400, "Role not found")
             new_user = User(
                 username=data['username'], 
                 hashed_password=hash_password(data['password']),
@@ -96,6 +100,7 @@ def register_routes(api):
     @ns_users.response(404, 'User not found')
     @ns_users.param('user_id', 'The user identifier')
     class UserID(Resource):
+        @jwt_required()
         @ns_users.doc('get_user')
         @ns_users.marshal_with(user_output_schema)
         def get(self, user_id):
@@ -105,6 +110,7 @@ def register_routes(api):
                 ns_users.abort(404, "User not found")
             return user
 
+        @jwt_required()
         @ns_users.doc('delete_user')
         @ns_users.response(204, 'User deleted')
         def delete(self, user_id):
@@ -116,7 +122,7 @@ def register_routes(api):
             db.session.commit()
             return f"User with ID {user_id} has been deleted.", 204
             
-
+        @jwt_required()
         @ns_users.doc('update_user')
         @ns_users.expect(user_input_schema)
         @ns_users.marshal_with(user_output_schema)
@@ -125,6 +131,8 @@ def register_routes(api):
             data = request.json
             user_to_update = User.query.get(user_id)
             if user_to_update:
+                if User.query.filter_by(username=data['username']).first() and user_to_update.username != data['username']:
+                    ns_users.abort(400, "Username already exists")
                 user_to_update.username = data['username']
                 user_to_update.hashed_password = hash_password(data['password'])
                 user_to_update.role_id = data['role_id']
@@ -135,17 +143,19 @@ def register_routes(api):
     # Routes for Role
     @ns_roles.route('/')
     class RoleList(Resource):
+        @jwt_required()
         @ns_roles.doc('list_roles')
         @ns_roles.marshal_list_with(role_output_schema)
         def get(self):
-            """List all persons"""
-            return Role.query.all()
+            """List all roles"""
+            return Role.query.order_by(Role.id).all()
     
+        @jwt_required()
         @ns_roles.doc('create_person')
         @ns_roles.expect(role_input_schema)
         @ns_roles.marshal_with(role_output_schema)
         def post(self):
-            """Create a new person"""
+            """Create a new role"""
             data = request.json
             new_person = Role(name=data['name'])
             db.session.add(new_person)
@@ -156,6 +166,7 @@ def register_routes(api):
     @ns_roles.response(404, 'Role not found')
     @ns_roles.param('role_id', 'The role identifier')
     class RoleID(Resource):
+        @jwt_required()
         @ns_roles.doc('get_role')
         @ns_roles.marshal_with(role_output_schema)
         def get(self, role_id):
@@ -165,6 +176,7 @@ def register_routes(api):
                 ns_roles.abort(404, "Role not found")
             return role
 
+        @jwt_required()
         @ns_roles.doc('delete_role')
         @ns_roles.response(204, 'Role deleted')
         def delete(self, role_id):
@@ -176,6 +188,7 @@ def register_routes(api):
             db.session.commit()
             return f"Role with ID {role_id} has been deleted.", 204
 
+        @jwt_required()
         @ns_roles.doc('update_role')
         @ns_roles.expect(role_input_schema)
         @ns_roles.marshal_with(role_output_schema)
@@ -192,12 +205,14 @@ def register_routes(api):
     # Routes for Log
     @ns_logs.route('/')
     class LogList(Resource):
+        @jwt_required()
         @ns_logs.doc('list_logs')
         @ns_logs.marshal_list_with(log_output_schema)
         def get(self):
             """List all logs"""
-            return Log.query.all()
+            return Log.query.order_by(Log.id).all()
     
+        @jwt_required()
         @ns_logs.doc('create_log')
         @ns_logs.expect(log_input_schema)
         @ns_logs.marshal_with(log_output_schema)
@@ -224,6 +239,7 @@ def register_routes(api):
     @ns_logs.response(404, 'Log not found')
     @ns_logs.param('log_id', 'The log identifier')
     class LogID(Resource):
+        @jwt_required()
         @ns_logs.doc('get_log')
         @ns_logs.marshal_with(log_output_schema)
         def get(self, log_id):
@@ -233,41 +249,17 @@ def register_routes(api):
                 ns_logs.abort(404, "Log not found")
             return log
 
-        @ns_logs.doc('delete_log')
-        @ns_logs.response(204, 'Log deleted')
-        def delete(self, log_id):
-            """Delete a log given its identifier"""
-            log_to_delete = Log.query.get(log_id)
-            if not log_to_delete:
-                ns_logs.abort(404, "Log not found")
-            db.session.delete(log_to_delete)
-            db.session.commit()
-            return f"Log with ID {log_id} has been deleted.", 204
-
-        @ns_logs.doc('update_log')
-        @ns_logs.expect(log_input_schema)
-        @ns_logs.marshal_with(log_output_schema)
-        def put(self, log_id):
-            """Update a log given its identifier"""
-            data = request.json
-            log_to_update = Log.query.get(log_id)
-            if log_to_update:
-                log_to_update.user_id = data['user_id']
-                log_to_update.action = data['action']
-                log_to_update.timestamp = data['timestamp']
-                db.session.commit()
-                return log_to_update
-            ns_logs.abort(404, "Log not found")
-
     # Routes for Access Control
     @ns_access_controls.route('/')
     class AccessControlList(Resource):
+        @jwt_required()
         @ns_access_controls.doc('list_access_control')
         @ns_access_controls.marshal_list_with(access_control_output_schema)
         def get(self):
             """List all access controls"""
-            return AccessControl.query.all()
+            return AccessControl.query.order_by(AccessControl.id).all()
     
+        @jwt_required()
         @ns_access_controls.doc('create_access_control')
         @ns_access_controls.expect(access_control_input_schema)
         @ns_access_controls.marshal_with(access_control_output_schema)
@@ -296,6 +288,7 @@ def register_routes(api):
     @ns_access_controls.response(404, 'Access Control not found')
     @ns_access_controls.param('access_control_id', 'The access control identifier')
     class AccessControlID(Resource):
+        @jwt_required()
         @ns_access_controls.doc('get_access_control')
         @ns_access_controls.marshal_with(access_control_output_schema)
         def get(self, access_control_id):
@@ -305,6 +298,7 @@ def register_routes(api):
                 ns_access_controls.abort(404, "Access Control not found")
             return access_control
 
+        @jwt_required()
         @ns_access_controls.doc('delete_access_control')
         @ns_access_controls.response(204, 'Access control deleted')
         def delete(self, access_control_id):
@@ -316,6 +310,7 @@ def register_routes(api):
             db.session.commit()
             return f"Access control with ID {access_control_id} has been deleted.", 204
 
+        @jwt_required()
         @ns_access_controls.doc('update_access_control')
         @ns_access_controls.expect(access_control_input_schema)
         @ns_access_controls.marshal_with(access_control_output_schema)

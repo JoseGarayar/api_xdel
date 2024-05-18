@@ -6,6 +6,8 @@ from flask_jwt_extended import JWTManager
 from flask_restx import Api
 # SQLAlchemy
 from sqlalchemy.schema import CreateSchema
+# Python
+from datetime import timedelta
 # App
 from constants import (
     ENV,
@@ -39,6 +41,7 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = SECRET_KEY
     app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=4)
     app.config['ENV']='development'
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
