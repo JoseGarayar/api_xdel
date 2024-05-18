@@ -36,5 +36,6 @@ output_address_schema = api.model('Output_Address', {
     'suburb': fields.String(description='The suburb'),
     'city': fields.String(description='The city'),
     'state': fields.String(description='The state'),
-    'country': fields.String(description='The country')
+    'country': fields.String(description='The country'),
+    'customer': fields.List(fields.Nested(output_customer_schema))
 })
