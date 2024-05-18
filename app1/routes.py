@@ -3,8 +3,7 @@ from flask import request
 from flask_restx import Resource
 from flask_jwt_extended import ( 
     create_access_token, 
-    jwt_required, 
-    get_jwt_identity
+    jwt_required
 )
 # App
 from models import *
@@ -18,31 +17,11 @@ from functions import (
 
 def register_routes(api):
     # Namespaces
-    # ns_test = api.namespace('', description='Endpoints for testing')
     ns_login = api.namespace('login', description='Endpoints for login')
     ns_users = api.namespace('users', description='User operations')
     ns_roles = api.namespace('roles', description='User roles')
     ns_logs = api.namespace('logs', description='User logs')
     ns_access_controls = api.namespace('access_controls', description='User access controls')
-
-    # Routes
-    # @ns_test.route('/hello')
-    # class Hello(Resource):
-    #     def get(self):
-    #         """Return a simple message to any public requester."""
-    #         return {'hello': 'world'}
-        
-    # @ns_test.route('/protected')
-    # class Protected(Resource):
-    #     @jwt_required()
-    #     def get(self):
-    #         """
-    #         Provide the current logged-in user's identifier to authenticated requests. 
-    #         It requires the requester to be authenticated.
-    #         This endpoint is useful for verifying token validity and user authentication status.
-    #         """
-    #         current_user = get_jwt_identity()
-    #         return {'logged_in_as': current_user}
     
     @ns_login.route('/')
     class Login(Resource):
