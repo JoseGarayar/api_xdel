@@ -11,13 +11,6 @@ def register_routes(api):
     ns_order = api.namespace('order', description='Order related operations')
     ns_shipment = api.namespace('shipment-type', description='Shipment Type related operations')
 
-    # Test Namespace
-    @api.route('/hello')
-    class Hello(Resource):
-        def get(self):
-            """Return a simple message to any public requester."""
-            return {'hello': 'world'}
-
     # Routes
     @ns_order.route('/')
     class OrderList(Resource):
@@ -31,14 +24,17 @@ def register_routes(api):
         @api.marshal_with(order_schema)
         def get(self, id):
             """Get an order by its ID with items"""
-            return Order.query.filter_by(OrderID=id).first()
+            order = Order.query.get(id)
+            if not order:
+                ns_order.abort(404, "Order not found")
+            return order
 
     @ns_order.route('/search/<string:sender_name>')
     class OrderBySenderName(Resource):
         @api.marshal_list_with(order_schema)
         def get(self, sender_name):
             """Search orders by SenderName"""
-            return Order.query.filter_by(sender_name=sender_name).all()
+            return Order.query.filter(Order.sender_name.ilike(f'%{sender_name}%')).all()
 
     @ns_order.route('/create')
     class CreateOrder(Resource):
@@ -88,4 +84,7 @@ def register_routes(api):
         @api.marshal_with(shipment_type_schema)
         def get(self, shipment_type_id):
             """Retrieve a specific shipment status"""
+            shipment_type = ShipmentType.query.get(shipment_type_id)
+            if not shipment_type:
+                ns_order.abort(404, "Shipment type not found")
             return ShipmentType.query.filter_by(shipment_type_id=shipment_type_id).first()
