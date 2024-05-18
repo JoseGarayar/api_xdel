@@ -5,7 +5,7 @@ class Customer(db.Model):
     __table_args__ = {'schema': 'Client'}
 
     customer_id = db.Column(db.Integer, primary_key = True, autoincrement = True)
-    type_id = db.Column(db.Integer)
+    type = db.Column(db.String)
     name = db.Column(db.String)
     email = db.Column(db.String, unique = True)
     company = db.Column(db.String)
@@ -19,8 +19,6 @@ class Address(db.Model):
     address_id = db.Column(db.Integer, primary_key = True, autoincrement = True)
     customer_id = db.Column(db.Integer, db.ForeignKey('Client.Customer.customer_id'), nullable = True)
     address = db.Column(db.String)
-    address_2 = db.Column(db.String)
-    address_3 = db.Column(db.String)
     suburb = db.Column(db.String)
     city = db.Column(db.String)
     state = db.Column(db.String)

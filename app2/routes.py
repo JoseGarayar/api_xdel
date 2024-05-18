@@ -8,23 +8,17 @@ from schemas import *
 
 def register_routes(api):
     # Namespaces
-    ns_test = api.namespace('', description = 'Endpoints for testing')
     ns_customer = api.namespace('customer', description = 'Endpoints for customer')
     ns_address = api.namespace('address', description = 'Endpoints for address')
 
     # Routes
-    @ns_test.route('/hello')
-    class Hello(Resource):
-        def get(self):
-            """Return a simple message to any public requester."""
-            return {'hello': 'world'}
         
     @ns_customer.route('/')
     class CustomerList(Resource):
         @ns_customer.doc('list_customers')
         @ns_customer.marshal_list_with(output_customer_schema)
         def get(self):
-            """List all users"""
+            """List all customers"""
             return Customer.query.all()
         
         @ns_customer.doc('create_customer')
@@ -33,10 +27,9 @@ def register_routes(api):
         def post(self):
             """Create a new customer"""
             data = request.json
-            print(list(data.keys()))
             if Customer.query.filter_by(email = data['email']).first() is not None:
                 ns_customer.abort(400, "Customer already exists")
-            new_customer = Customer(type_id = data['type_id'],
+            new_customer = Customer(type = data['type'],
                                     name = data['name'],
                                     email = data['email'],
                                     company = data['company'])
@@ -68,7 +61,6 @@ def register_routes(api):
             db.session.commit()
             return f"Customer with ID {customer_id} has been deleted.", 204
             
-
         @ns_customer.doc('update_customer')
         @ns_customer.expect(input_customer_schema)
         @ns_customer.marshal_with(output_customer_schema)
@@ -77,11 +69,12 @@ def register_routes(api):
             data = request.json
             customer_to_update = Customer.query.get(customer_id)
             if customer_to_update:
-                customer_to_update.type_id = data['type_id']
+                if Customer.query.filter_by(email = data['email']).first() is not None and customer_to_update.email != data['email']:
+                    ns_customer.abort(400, "Customer already exists")
+                customer_to_update.type = data['type']
                 customer_to_update.name = data['name']
                 customer_to_update.email = data['email']
                 customer_to_update.company = data['company']
-
                 db.session.commit()
                 return customer_to_update
             ns_customer.abort(404, "Customer not found")
@@ -101,16 +94,12 @@ def register_routes(api):
         def post(self):
             """Create a new address"""
             data = request.json
-            if Address.query.filter_by(customer_id = data['customer_id']).first() is not None:
-                ns_address.abort(400, "User with Address already exists")
 
             if Customer.query.get(data['customer_id']) is None:
-                ns_address.abort(400, "User does not exist")
+                ns_address.abort(400, "Customer does not exist")
 
             new_address = Address(customer_id = data['customer_id'],
                                   address = data['address'],
-                                  address_2 = data['address_2'],
-                                  address_3 = data['address_3'],
                                   suburb = data['suburb'],
                                   city = data['city'],
                                   state = data['state'],
@@ -137,26 +126,25 @@ def register_routes(api):
         @ns_address.response(204, 'Address deleted')
         def delete(self, address_id):
             """Delete an address given its identifier"""
-            address_to_delete = Customer.query.get(address_id)
+            address_to_delete = Address.query.get(address_id)
             if not address_to_delete:
                 ns_address.abort(404, "Address not found")
             db.session.delete(address_to_delete)
             db.session.commit()
             return f"Address with ID {address_id} has been deleted.", 204
             
-
         @ns_address.doc('update_address')
         @ns_address.expect(input_address_schema)
         @ns_address.marshal_with(output_address_schema)
         def put(self, address_id):
             """Update an address given its identifier"""
             data = request.json
+            if Customer.query.get(data['customer_id']) is None:
+                ns_address.abort(400, "Customer does not exist")
             address_to_update = Address.query.get(address_id)
             if address_to_update:
                 address_to_update.customer_id = data['customer_id']
                 address_to_update.address = data['address']
-                address_to_update.address_2 = data['address_2']
-                address_to_update.address_3 = data['address_3']
                 address_to_update.suburb = data['suburb']
                 address_to_update.city = data['city']
                 address_to_update.state = data['state']
