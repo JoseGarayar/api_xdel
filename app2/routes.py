@@ -1,6 +1,7 @@
 # Flask
 from flask import request
 from flask_restx import Resource
+from flask_jwt_extended import jwt_required
 # App
 from models import *
 from schemas import *
@@ -15,12 +16,14 @@ def register_routes(api):
         
     @ns_customer.route('/')
     class CustomerList(Resource):
+        @jwt_required()
         @ns_customer.doc('list_customers')
         @ns_customer.marshal_list_with(output_customer_schema)
         def get(self):
             """List all customers"""
             return Customer.query.all()
         
+        @jwt_required()
         @ns_customer.doc('create_customer')
         @ns_customer.expect(input_customer_schema)
         @ns_customer.marshal_with(output_customer_schema)
@@ -41,6 +44,7 @@ def register_routes(api):
     @ns_customer.response(404, 'Customer not found')
     @ns_customer.param('customer_id', 'The customer identifier')
     class CustomerID(Resource):
+        @jwt_required()
         @ns_customer.doc('get_customer')
         @ns_customer.marshal_with(output_customer_schema)
         def get(self, customer_id):
@@ -50,6 +54,7 @@ def register_routes(api):
                 ns_customer.abort(404, "Customer not found")
             return customer
 
+        @jwt_required()
         @ns_customer.doc('delete_customer')
         @ns_customer.response(204, 'Customer deleted')
         def delete(self, customer_id):
@@ -61,6 +66,7 @@ def register_routes(api):
             db.session.commit()
             return f"Customer with ID {customer_id} has been deleted.", 204
             
+        @jwt_required()
         @ns_customer.doc('update_customer')
         @ns_customer.expect(input_customer_schema)
         @ns_customer.marshal_with(output_customer_schema)
@@ -82,12 +88,14 @@ def register_routes(api):
 
     @ns_address.route('/')
     class AddressList(Resource):
+        @jwt_required()
         @ns_address.doc('list_address')
         @ns_address.marshal_list_with(output_address_schema)
         def get(self):
             """List all addresses"""
             return Address.query.all()
         
+        @jwt_required()
         @ns_address.doc('create_address')
         @ns_address.expect(input_address_schema)
         @ns_address.marshal_with(output_address_schema)
@@ -113,6 +121,7 @@ def register_routes(api):
     @ns_address.response(404, 'Address not found')
     @ns_address.param('address_id', 'The Address identifier')
     class AddressID(Resource):
+        @jwt_required()
         @ns_address.doc('get_address')
         @ns_address.marshal_with(output_address_schema)
         def get(self, address_id):
@@ -122,6 +131,7 @@ def register_routes(api):
                 ns_address.abort(404, "Address not found")
             return address
 
+        @jwt_required()
         @ns_address.doc('delete_address')
         @ns_address.response(204, 'Address deleted')
         def delete(self, address_id):
@@ -133,6 +143,7 @@ def register_routes(api):
             db.session.commit()
             return f"Address with ID {address_id} has been deleted.", 204
             
+        @jwt_required()
         @ns_address.doc('update_address')
         @ns_address.expect(input_address_schema)
         @ns_address.marshal_with(output_address_schema)

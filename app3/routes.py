@@ -1,6 +1,7 @@
 # Flask
 from flask import request
 from flask_restx import Resource
+from flask_jwt_extended import jwt_required
 # App
 from models import *
 from schemas import *
@@ -14,6 +15,7 @@ def register_routes(api):
     # Routes
     @ns_order.route('/')
     class OrderList(Resource):
+        @jwt_required()
         @api.marshal_list_with(order_schema)
         def get(self):
             """List all orders without items"""
@@ -21,6 +23,7 @@ def register_routes(api):
 
     @ns_order.route('/<int:id>')
     class OrderDetail(Resource):
+        @jwt_required()
         @api.marshal_with(order_schema)
         def get(self, id):
             """Get an order by its ID with items"""
@@ -31,6 +34,7 @@ def register_routes(api):
 
     @ns_order.route('/search/<string:sender_name>')
     class OrderBySenderName(Resource):
+        @jwt_required()
         @api.marshal_list_with(order_schema)
         def get(self, sender_name):
             """Search orders by SenderName"""
@@ -38,6 +42,7 @@ def register_routes(api):
 
     @ns_order.route('/create')
     class CreateOrder(Resource):
+        @jwt_required()
         @api.doc('create_order')
         @api.expect(order_schema_input)
         @api.marshal_with(order_schema)
@@ -56,12 +61,13 @@ def register_routes(api):
     
     @ns_shipment.route('/')
     class ShipmentTypeCreate(Resource):
-        
+        @jwt_required()
         @api.marshal_list_with(shipment_type_schema)
         def get(self):
             """List all shipment types"""
             return ShipmentType.query.all()
         
+        @jwt_required()
         @api.doc('Create_Shipment_Type')
         @api.expect(shipment_type_schema_input)
         @api.marshal_with(shipment_type_schema)
@@ -81,6 +87,7 @@ def register_routes(api):
 
     @ns_shipment.route('/<int:shipment_type_id>')
     class ShipmentStatusItem(Resource):
+        @jwt_required()
         @api.marshal_with(shipment_type_schema)
         def get(self, shipment_type_id):
             """Retrieve a specific shipment status"""
