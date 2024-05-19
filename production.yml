@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/flask/app1/Dockerfile
-    image: xdel_api_production_1
+    image: josegarayar/xdel_api_production_1
     container_name: xdel_api_production_1
     env_file:
       - ./.envs/.production/.flask.env
@@ -15,7 +15,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/flask/app2/Dockerfile
-    image: xdel_api_production_2
+    image: josegarayar/xdel_api_production_2
     container_name: xdel_api_production_2
     env_file:
       - ./.envs/.production/.flask.env
@@ -27,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/flask/app3/Dockerfile
-    image: xdel_api_production_3
+    image: josegarayar/xdel_api_production_3
     container_name: xdel_api_production_3
     env_file:
       - ./.envs/.production/.flask.env
@@ -39,7 +39,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/flask/app4/Dockerfile
-    image: xdel_api_production_4
+    image: josegarayar/xdel_api_production_4
     container_name: xdel_api_production_4
     env_file:
       - ./.envs/.production/.flask.env

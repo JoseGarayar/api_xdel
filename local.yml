@@ -7,7 +7,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/flask/Dockerfile
-    image: xdel_api_local
+    image: josegarayar/xdel_api_local
     container_name: xdel_api_local_1
     depends_on:
       - postgres
@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/flask/Dockerfile
-    image: xdel_api_local
+    image: josegarayar/xdel_api_local
     container_name: xdel_api_local_2
     depends_on:
       - postgres
@@ -41,7 +41,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/flask/Dockerfile
-    image: xdel_api_local
+    image: josegarayar/xdel_api_local
     container_name: xdel_api_local_3
     depends_on:
       - postgres
@@ -58,7 +58,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/flask/Dockerfile
-    image: xdel_api_local
+    image: josegarayar/xdel_api_local
     container_name: xdel_api_local_4
     depends_on:
       - postgres
